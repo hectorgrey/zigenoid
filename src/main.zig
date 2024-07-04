@@ -11,9 +11,19 @@ pub fn main() !void {
     const window_flags = 0;
     const screen_width = 1920;
     const screen_height = 1080;
+
     const window = sdl.SDL_CreateWindow("Zigenoid", sdl.SDL_WINDOWPOS_UNDEFINED, sdl.SDL_WINDOWPOS_UNDEFINED, screen_width, screen_height, window_flags);
+    if (window == null) {
+        std.debug.print("Failed to initialise SDL: {s}\n", .{sdl.SDL_GetError()});
+        return error.Unknown;
+    }
     defer sdl.SDL_DestroyWindow(window);
     const renderer = sdl.SDL_CreateRenderer(window, -1, 0);
+
+    if (renderer == null) {
+        std.debug.print("Failed to initialise SDL: {s}\n", .{sdl.SDL_GetError()});
+        return error.Unknown;
+    }
     defer sdl.SDL_DestroyRenderer(renderer);
 
     var running = true;
