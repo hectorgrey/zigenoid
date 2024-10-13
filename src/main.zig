@@ -1,6 +1,13 @@
 const sdl = @cImport(@cInclude("SDL2/SDL.h"));
 const std = @import("std");
 
+fn handle_event(event: sdl.SDL_Event) bool {
+    switch (event.type) {
+        sdl.SDL_QUIT => return false,
+        else => return true,
+    }
+}
+
 pub fn main() !void {
     if (sdl.SDL_Init(sdl.SDL_INIT_VIDEO) < 0) {
         std.debug.print("Failed to initialise SDL: {s}\n", .{sdl.SDL_GetError()});
@@ -18,8 +25,8 @@ pub fn main() !void {
         return error.Unknown;
     }
     defer sdl.SDL_DestroyWindow(window);
-    const renderer = sdl.SDL_CreateRenderer(window, -1, 0);
 
+    const renderer = sdl.SDL_CreateRenderer(window, -1, 0);
     if (renderer == null) {
         std.debug.print("Failed to initialise SDL: {s}\n", .{sdl.SDL_GetError()});
         return error.Unknown;
@@ -30,9 +37,9 @@ pub fn main() !void {
     while (running) {
         var event: sdl.SDL_Event = undefined;
         while (sdl.SDL_PollEvent(&event) > 0) {
-            switch (event.type) {
-                sdl.SDL_QUIT => running = false,
-                else => {},
+            const should_run = handle_event(event);
+            if (!should_run) {
+                running = false;
             }
         }
         _ = sdl.SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
