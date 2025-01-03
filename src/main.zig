@@ -4,14 +4,30 @@ const std = @import("std");
 const screen_width = 1920;
 const screen_height = 1080;
 
-const Paddle = struct { width: i32 = 200, height: i32 = 30, x: i32 = 500, y: i32 = screen_height - 60, vel_x: i32 = 0 };
+const Paddle = struct { width: i32 = 200, height: i32 = 30, x: i32 = (screen_width / 2) - 100, y: i32 = screen_height - 60, vel_x: i32 = 0, left_bound: i32 = 30, right_bound: i32 = screen_width - 230 };
 const Ball = struct { radius: i32 = 15, x: i32 = screen_width / 2, y: i32 = screen_height / 2, vel_x: i32 = 0, vel_y: i32 = 0 };
 const Block = struct { width: i32 = 200, height: i32 = 30, x: i32, y: i32, hp: i32 = 1 };
+const KeyState = struct { is_down: bool = false, was_down: bool = false };
+const KeyboardState = struct { left: KeyState = KeyState{}, right: KeyState = KeyState{} };
 
-fn handle_event(event: sdl.SDL_Event) bool {
+fn handle_event(event: sdl.SDL_Event, keyboard_state: *KeyboardState) bool {
     var should_close = false;
     switch (event.type) {
         sdl.SDL_QUIT => should_close = true,
+        sdl.SDL_KEYDOWN => {
+            switch (event.key.keysym.sym) {
+                sdl.SDLK_LEFT => keyboard_state.left.is_down = true,
+                sdl.SDLK_RIGHT => keyboard_state.right.is_down = true,
+                else => {},
+            }
+        },
+        sdl.SDL_KEYUP => {
+            switch (event.key.keysym.sym) {
+                sdl.SDLK_LEFT => keyboard_state.left.is_down = false,
+                sdl.SDLK_RIGHT => keyboard_state.right.is_down = false,
+                else => {},
+            }
+        },
         else => should_close = false,
     }
     return should_close;
@@ -108,16 +124,53 @@ pub fn main() !void {
     var paddle = Paddle{};
     var ball = Ball{};
     var block = Block{ .x = 30, .y = 30 };
+    var keyboard_state = KeyboardState{};
 
     var running = true;
+
+    const freq = @as(f64, @floatFromInt(sdl.SDL_GetPerformanceFrequency()));
+    var count = @as(f64, @floatFromInt(sdl.SDL_GetPerformanceCounter()));
+    var last_frame = count / freq;
     while (running) {
+        count = @as(f64, @floatFromInt(sdl.SDL_GetPerformanceCounter()));
+        const curr_frame = count / freq;
+        const dt = curr_frame - last_frame;
+        last_frame = curr_frame;
+        std.debug.print("frames per second: {}\t", .{@as(i32, @intFromFloat(1 / dt))});
         var event: sdl.SDL_Event = undefined;
         while (sdl.SDL_PollEvent(&event) > 0) {
-            const should_close = handle_event(event);
+            const should_close = handle_event(event, &keyboard_state);
             if (should_close) {
                 running = false;
             }
         }
+
+        if (keyboard_state.left.is_down) {
+            paddle.vel_x -= 30;
+        }
+        if (keyboard_state.right.is_down) {
+            paddle.vel_x += 30;
+        }
+
+        std.debug.print("Paddle x: {}; Paddle Velocity: {}\n", .{ paddle.x, paddle.vel_x });
+
+        paddle.x += @as(i32, @intFromFloat(@as(f64, @floatFromInt(paddle.vel_x)) * dt));
+
+        if (paddle.vel_x > 0) {
+            paddle.vel_x -= 10;
+        }
+        if (paddle.vel_x < 0) {
+            paddle.vel_x += 10;
+        }
+        if (paddle.x < paddle.left_bound) {
+            paddle.x = paddle.left_bound;
+            paddle.vel_x = -paddle.vel_x;
+        }
+        if (paddle.x > paddle.right_bound) {
+            paddle.x = paddle.right_bound;
+            paddle.vel_x = -paddle.vel_x;
+        }
+
         _ = sdl.SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xff);
         _ = sdl.SDL_RenderClear(renderer);
         render_borders(renderer);
@@ -125,5 +178,9 @@ pub fn main() !void {
         render_ball(renderer, &ball);
         render_block(renderer, &block);
         _ = sdl.SDL_RenderPresent(renderer);
+
+        count = @as(f64, @floatFromInt(sdl.SDL_GetPerformanceCounter()));
+        const end_frame = (count / freq) - curr_frame;
+        sdl.SDL_Delay(@as(u32, @intFromFloat(16.0 - (end_frame * 1000))));
     }
 }
