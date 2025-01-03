@@ -4,8 +4,8 @@ const std = @import("std");
 const screen_width = 1920;
 const screen_height = 1080;
 
-const Paddle = struct { width: i32 = 200, height: i32 = 30, x: i32 = (screen_width / 2) - 100, y: i32 = screen_height - 60, vel_x: i32 = 0, left_bound: i32 = 30, right_bound: i32 = screen_width - 230, max_vel: i32 = 100 };
-const Ball = struct { radius: i32 = 15, x: i32 = screen_width / 2, y: i32 = screen_height / 2, vel_x: i32 = 0, vel_y: i32 = 0 };
+const Paddle = struct { width: i32 = 200, height: i32 = 30, x: i32 = (screen_width / 2) - 100, y: i32 = screen_height - 60, vel_x: f64 = 0, left_bound: i32 = 30, right_bound: i32 = screen_width - 230, max_vel: f64 = 1000 };
+const Ball = struct { radius: i32 = 15, x: i32 = screen_width / 2, y: i32 = screen_height / 2, vel_x: f64 = 0, vel_y: f64 = 0 };
 const Block = struct { width: i32 = 200, height: i32 = 30, x: i32, y: i32, hp: i32 = 1 };
 const KeyState = struct { is_down: bool = false, was_down: bool = false };
 const KeyboardState = struct { left: KeyState = KeyState{}, right: KeyState = KeyState{} };
@@ -122,7 +122,7 @@ pub fn main() !void {
     defer sdl.SDL_DestroyRenderer(renderer);
 
     var paddle = Paddle{};
-    var ball = Ball{};
+    var ball = Ball{ .vel_y = 10 };
     var block = Block{ .x = 30, .y = 30 };
     var keyboard_state = KeyboardState{};
 
@@ -136,7 +136,7 @@ pub fn main() !void {
         const curr_frame = count / freq;
         const dt = curr_frame - last_frame;
         last_frame = curr_frame;
-        std.debug.print("frames per second: {}\t", .{@as(i32, @intFromFloat(1 / dt))});
+        std.debug.print("frames per second: {}\n", .{@as(i32, @intFromFloat(1 / dt))});
         var event: sdl.SDL_Event = undefined;
         while (sdl.SDL_PollEvent(&event) > 0) {
             const should_close = handle_event(event, &keyboard_state);
@@ -146,27 +146,48 @@ pub fn main() !void {
         }
 
         if (keyboard_state.left.is_down) {
-            paddle.vel_x -= 30;
+            paddle.vel_x -= 30 * dt;
         }
         if (keyboard_state.right.is_down) {
-            paddle.vel_x += 30;
+            paddle.vel_x += 30 * dt;
         }
 
-        paddle.x += @as(i32, @intFromFloat(@as(f64, @floatFromInt(paddle.vel_x)) * dt));
+        paddle.x += @as(i32, @intFromFloat(paddle.vel_x));
+
+        if (paddle.vel_x > paddle.max_vel) {
+            paddle.vel_x = paddle.max_vel;
+        } else if (paddle.vel_x < -paddle.max_vel) {
+            paddle.vel_x = -paddle.max_vel;
+        }
 
         if (paddle.vel_x > 0) {
-            paddle.vel_x -= 10;
-        }
-        if (paddle.vel_x < 0) {
-            paddle.vel_x += 10;
+            paddle.vel_x -= 10 * dt;
+        } else if (paddle.vel_x < 0) {
+            paddle.vel_x += 10 * dt;
         }
         if (paddle.x < paddle.left_bound) {
             paddle.x = paddle.left_bound;
             paddle.vel_x = -paddle.vel_x;
-        }
-        if (paddle.x > paddle.right_bound) {
+        } else if (paddle.x > paddle.right_bound) {
             paddle.x = paddle.right_bound;
             paddle.vel_x = -paddle.vel_x;
+        }
+
+        ball.x += @as(i32, @intFromFloat(ball.vel_x));
+        ball.y += @as(i32, @intFromFloat(ball.vel_y));
+
+        if (ball.y > screen_height - ball.radius - 10) {
+            running = false;
+        } else if (ball.y < ball.radius + 10) {
+            ball.vel_y = -ball.vel_y;
+        }
+        if ((ball.x < ball.radius + 10) or (ball.x > screen_width - ball.radius - 10)) {
+            ball.vel_x = -ball.vel_x;
+        }
+
+        if ((ball.y + ball.radius > paddle.y) and (ball.x - ball.radius > paddle.x) and (ball.x - ball.radius < paddle.x + paddle.width)) {
+            ball.vel_y = -ball.vel_y;
+            ball.vel_x += paddle.vel_x;
         }
 
         _ = sdl.SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xff);
