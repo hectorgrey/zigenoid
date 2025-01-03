@@ -33,7 +33,7 @@ fn handle_event(event: sdl.SDL_Event, keyboard_state: *KeyboardState) bool {
     return should_close;
 }
 
-pub fn render_borders(renderer: ?*sdl.SDL_Renderer) void {
+fn render_borders(renderer: ?*sdl.SDL_Renderer) void {
     const top_rect = sdl.SDL_Rect{ .x = 0, .y = 0, .w = screen_width, .h = 10 };
     const left_rect = sdl.SDL_Rect{ .x = 0, .y = 10, .w = 10, .h = screen_height - 20 };
     const right_rect = sdl.SDL_Rect{ .x = screen_width - 10, .y = 10, .w = 10, .h = screen_height - 20 };
@@ -45,13 +45,13 @@ pub fn render_borders(renderer: ?*sdl.SDL_Renderer) void {
     _ = sdl.SDL_RenderFillRect(renderer, &bottom_rect);
 }
 
-pub fn render_paddle(renderer: ?*sdl.SDL_Renderer, paddle: *Paddle) void {
+fn render_paddle(renderer: ?*sdl.SDL_Renderer, paddle: *Paddle) void {
     const paddle_rect = sdl.SDL_Rect{ .x = paddle.x, .y = paddle.y, .w = paddle.width, .h = paddle.height };
     _ = sdl.SDL_SetRenderDrawColor(renderer, 0xcc, 0xcc, 0xcc, 0xff);
     _ = sdl.SDL_RenderFillRect(renderer, &paddle_rect);
 }
 
-pub fn render_block(renderer: ?*sdl.SDL_Renderer, block: *Block) void {
+fn render_block(renderer: ?*sdl.SDL_Renderer, block: *Block) void {
     const block_rect = sdl.SDL_Rect{ .x = block.x, .y = block.y, .w = block.width, .h = block.height };
     _ = sdl.SDL_SetRenderDrawColor(renderer, 0x00, 0xcc, 0xcc, 0xff);
     _ = sdl.SDL_RenderFillRect(renderer, &block_rect);
@@ -59,7 +59,7 @@ pub fn render_block(renderer: ?*sdl.SDL_Renderer, block: *Block) void {
 
 // Midpoint Circle Algorithm, repeated in order to fill.  It doesn't fill completely, but the missing pixels
 // look like arrows, which works aesthetically.
-pub fn render_ball(renderer: ?*sdl.SDL_Renderer, ball: *Ball) void {
+fn render_ball(renderer: ?*sdl.SDL_Renderer, ball: *Ball) void {
     var diameter: i32 = ball.radius * 2;
     _ = sdl.SDL_SetRenderDrawColor(renderer, 0xcc, 0xcc, 0xcc, 0xff);
 
@@ -98,7 +98,7 @@ pub fn render_ball(renderer: ?*sdl.SDL_Renderer, ball: *Ball) void {
     }
 }
 
-pub fn test_border_collision(ball: *Ball) bool {
+fn test_border_collision(ball: *Ball) bool {
     if (ball.y > screen_height - ball.radius - 10) {
         return true;
     } else if (ball.y < ball.radius + 10) {
@@ -110,14 +110,14 @@ pub fn test_border_collision(ball: *Ball) bool {
     return false;
 }
 
-pub fn test_paddle_collision(ball: *Ball, paddle: *Paddle) void {
+fn test_paddle_collision(ball: *Ball, paddle: *Paddle) void {
     if ((ball.y + ball.radius > paddle.y) and (ball.x - ball.radius > paddle.x) and (ball.x - ball.radius < paddle.x + paddle.width)) {
         ball.vel_y = -ball.vel_y;
         ball.vel_x += paddle.vel_x;
     }
 }
 
-pub fn test_block_collision(ball: *Ball, block: *Block) void {
+fn test_block_collision(ball: *Ball, block: *Block) void {
     if ((ball.y + ball.radius > block.y) and (ball.y - ball.radius < block.y + block.height) and (ball.x - ball.radius > block.x) and (ball.x - ball.radius < block.x + block.width)) {
         ball.vel_y = -ball.vel_y;
     }
