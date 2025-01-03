@@ -146,8 +146,12 @@ pub fn main() !void {
     }
     defer sdl.SDL_DestroyRenderer(renderer);
 
+    // TODO: Replace all of this with a gamestate singleton
     var paddle = Paddle{};
     var ball = Ball{ .vel_y = 10 };
+    var keyboard_state = KeyboardState{};
+
+    // TODO: Replace this with an 8x8 grid, which can optionally have a block inside.
     var blocks = std.ArrayList(Block).init(std.heap.page_allocator);
     defer blocks.deinit();
     blocks.append(Block{ .x = 55, .y = 30 }) catch |err| {
@@ -174,7 +178,6 @@ pub fn main() !void {
     blocks.append(Block{ .x = 1665, .y = 30 }) catch |err| {
         return err;
     };
-    var keyboard_state = KeyboardState{};
 
     var running = true;
 
@@ -246,6 +249,7 @@ pub fn main() !void {
 
         count = @as(f64, @floatFromInt(sdl.SDL_GetPerformanceCounter()));
         const end_frame = (count / freq) - curr_frame;
-        sdl.SDL_Delay(@as(u32, @intFromFloat(16.0 - (end_frame * 1000))));
+        const ms_per_frame: f64 = 1000.0 / 60.0;
+        sdl.SDL_Delay(@as(u32, @intFromFloat(ms_per_frame - end_frame)));
     }
 }
