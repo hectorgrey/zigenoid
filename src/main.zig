@@ -100,20 +100,26 @@ pub fn render_ball(renderer: ?*sdl.SDL_Renderer, ball: *Ball) void {
 
 pub fn test_border_collision(ball: *Ball) bool {
     if (ball.y > screen_height - ball.radius - 10) {
-        return false;
+        return true;
     } else if (ball.y < ball.radius + 10) {
         ball.vel_y = -ball.vel_y;
     }
     if ((ball.x < ball.radius + 10) or (ball.x > screen_width - ball.radius - 10)) {
         ball.vel_x = -ball.vel_x;
     }
-    return true;
+    return false;
 }
 
 pub fn test_paddle_collision(ball: *Ball, paddle: *Paddle) void {
     if ((ball.y + ball.radius > paddle.y) and (ball.x - ball.radius > paddle.x) and (ball.x - ball.radius < paddle.x + paddle.width)) {
         ball.vel_y = -ball.vel_y;
         ball.vel_x += paddle.vel_x;
+    }
+}
+
+pub fn test_block_collision(ball: *Ball, block: *Block) void {
+    if ((ball.y + ball.radius > block.y) and (ball.y - ball.radius < block.y + block.height) and (ball.x - ball.radius > block.x) and (ball.x - ball.radius < block.x + block.width)) {
+        ball.vel_y = -ball.vel_y;
     }
 }
 
@@ -142,7 +148,32 @@ pub fn main() !void {
 
     var paddle = Paddle{};
     var ball = Ball{ .vel_y = 10 };
-    var block = Block{ .x = 30, .y = 30 };
+    var blocks = std.ArrayList(Block).init(std.heap.page_allocator);
+    defer blocks.deinit();
+    blocks.append(Block{ .x = 55, .y = 30 }) catch |err| {
+        return err;
+    };
+    blocks.append(Block{ .x = 285, .y = 30 }) catch |err| {
+        return err;
+    };
+    blocks.append(Block{ .x = 515, .y = 30 }) catch |err| {
+        return err;
+    };
+    blocks.append(Block{ .x = 745, .y = 30 }) catch |err| {
+        return err;
+    };
+    blocks.append(Block{ .x = 975, .y = 30 }) catch |err| {
+        return err;
+    };
+    blocks.append(Block{ .x = 1205, .y = 30 }) catch |err| {
+        return err;
+    };
+    blocks.append(Block{ .x = 1435, .y = 30 }) catch |err| {
+        return err;
+    };
+    blocks.append(Block{ .x = 1665, .y = 30 }) catch |err| {
+        return err;
+    };
     var keyboard_state = KeyboardState{};
 
     var running = true;
@@ -194,15 +225,23 @@ pub fn main() !void {
         ball.x += @as(i32, @intFromFloat(ball.vel_x));
         ball.y += @as(i32, @intFromFloat(ball.vel_y));
 
-        running = test_border_collision(&ball);
+        const should_close = test_border_collision(&ball);
+        if (should_close) {
+            running = false;
+        }
         test_paddle_collision(&ball, &paddle);
+        for (0..blocks.items.len) |i| {
+            test_block_collision(&ball, &blocks.items[i]);
+        }
 
         _ = sdl.SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xff);
         _ = sdl.SDL_RenderClear(renderer);
         render_borders(renderer);
         render_paddle(renderer, &paddle);
         render_ball(renderer, &ball);
-        render_block(renderer, &block);
+        for (0..blocks.items.len) |i| {
+            render_block(renderer, &blocks.items[i]);
+        }
         _ = sdl.SDL_RenderPresent(renderer);
 
         count = @as(f64, @floatFromInt(sdl.SDL_GetPerformanceCounter()));
