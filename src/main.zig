@@ -98,6 +98,25 @@ pub fn render_ball(renderer: ?*sdl.SDL_Renderer, ball: *Ball) void {
     }
 }
 
+pub fn test_border_collision(ball: *Ball) bool {
+    if (ball.y > screen_height - ball.radius - 10) {
+        return false;
+    } else if (ball.y < ball.radius + 10) {
+        ball.vel_y = -ball.vel_y;
+    }
+    if ((ball.x < ball.radius + 10) or (ball.x > screen_width - ball.radius - 10)) {
+        ball.vel_x = -ball.vel_x;
+    }
+    return true;
+}
+
+pub fn test_paddle_collision(ball: *Ball, paddle: *Paddle) void {
+    if ((ball.y + ball.radius > paddle.y) and (ball.x - ball.radius > paddle.x) and (ball.x - ball.radius < paddle.x + paddle.width)) {
+        ball.vel_y = -ball.vel_y;
+        ball.vel_x += paddle.vel_x;
+    }
+}
+
 pub fn main() !void {
     if (sdl.SDL_Init(sdl.SDL_INIT_VIDEO) < 0) {
         std.debug.print("Failed to initialise SDL: {s}\n", .{sdl.SDL_GetError()});
@@ -136,7 +155,6 @@ pub fn main() !void {
         const curr_frame = count / freq;
         const dt = curr_frame - last_frame;
         last_frame = curr_frame;
-        std.debug.print("frames per second: {}\n", .{@as(i32, @intFromFloat(1 / dt))});
         var event: sdl.SDL_Event = undefined;
         while (sdl.SDL_PollEvent(&event) > 0) {
             const should_close = handle_event(event, &keyboard_state);
@@ -176,19 +194,8 @@ pub fn main() !void {
         ball.x += @as(i32, @intFromFloat(ball.vel_x));
         ball.y += @as(i32, @intFromFloat(ball.vel_y));
 
-        if (ball.y > screen_height - ball.radius - 10) {
-            running = false;
-        } else if (ball.y < ball.radius + 10) {
-            ball.vel_y = -ball.vel_y;
-        }
-        if ((ball.x < ball.radius + 10) or (ball.x > screen_width - ball.radius - 10)) {
-            ball.vel_x = -ball.vel_x;
-        }
-
-        if ((ball.y + ball.radius > paddle.y) and (ball.x - ball.radius > paddle.x) and (ball.x - ball.radius < paddle.x + paddle.width)) {
-            ball.vel_y = -ball.vel_y;
-            ball.vel_x += paddle.vel_x;
-        }
+        running = test_border_collision(&ball);
+        test_paddle_collision(&ball, &paddle);
 
         _ = sdl.SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xff);
         _ = sdl.SDL_RenderClear(renderer);
