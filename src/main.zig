@@ -4,7 +4,7 @@ const std = @import("std");
 const screen_width = 1920;
 const screen_height = 1080;
 
-const Paddle = struct { width: i32 = 200, height: i32 = 30, x: i32 = (screen_width / 2) - 100, y: i32 = screen_height - 60, vel_x: i32 = 0, left_bound: i32 = 30, right_bound: i32 = screen_width - 230 };
+const Paddle = struct { width: i32 = 200, height: i32 = 30, x: i32 = (screen_width / 2) - 100, y: i32 = screen_height - 60, vel_x: i32 = 0, left_bound: i32 = 30, right_bound: i32 = screen_width - 230, max_vel: i32 = 100 };
 const Ball = struct { radius: i32 = 15, x: i32 = screen_width / 2, y: i32 = screen_height / 2, vel_x: i32 = 0, vel_y: i32 = 0 };
 const Block = struct { width: i32 = 200, height: i32 = 30, x: i32, y: i32, hp: i32 = 1 };
 const KeyState = struct { is_down: bool = false, was_down: bool = false };
@@ -151,8 +151,6 @@ pub fn main() !void {
         if (keyboard_state.right.is_down) {
             paddle.vel_x += 30;
         }
-
-        std.debug.print("Paddle x: {}; Paddle Velocity: {}\n", .{ paddle.x, paddle.vel_x });
 
         paddle.x += @as(i32, @intFromFloat(@as(f64, @floatFromInt(paddle.vel_x)) * dt));
 
