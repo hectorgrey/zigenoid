@@ -4,13 +4,44 @@ const std = @import("std");
 const screen_width = 1920;
 const screen_height = 1080;
 
-const Paddle = struct { width: i32 = 200, height: i32 = 30, x: i32 = (screen_width / 2) - 100, y: i32 = screen_height - 60, vel_x: f64 = 0, left_bound: i32 = 30, right_bound: i32 = screen_width - 230, max_vel: f64 = 1000 };
-const Ball = struct { radius: i32 = 15, x: i32 = screen_width / 2, y: i32 = screen_height / 2, vel_x: f64 = 0, vel_y: f64 = 0 };
-const Block = struct { width: i32 = 200, height: i32 = 30, x: i32 = 0, y: i32 = 0, hp: i32 = 1 };
+// zig fmt currently places all declarations on a single line each, which is difficult to read and edit in the case of structs and arrays.
+// zig fmt: off
+const Paddle = struct {
+    width: i32 = 200,
+    height: i32 = 30,
+    x: i32 = (screen_width / 2) - 100,
+    y: i32 = screen_height - 60,
+    vel_x: f64 = 0,
+    left_bound: i32 = 30,
+    right_bound: i32 = screen_width - 230,
+    max_vel: f64 = 1000 };
+const Ball = struct {
+    radius: i32 = 15,
+    x: i32 = screen_width / 2,
+    y: i32 = screen_height / 2,
+    vel_x: f64 = 0,
+    vel_y: f64 = 0
+};
+const Block = struct {
+    width: i32 = 200,
+    height: i32 = 30,
+    x: i32,
+    y: i32,
+    hp: i32 = 1
+};
 const KeyState = struct { is_down: bool = false };
-const KeyboardState = struct { left: KeyState = KeyState{}, right: KeyState = KeyState{} };
+const KeyboardState = struct {
+    left: KeyState = KeyState{},
+    right: KeyState = KeyState{}
+};
 const LevelLayout = struct { blocks: [8][8]i32 };
-const LevelState = struct { ball: Ball, paddle: Paddle, keyboard: KeyboardState, level: [8][8]Block };
+const LevelState = struct {
+    ball: Ball,
+    paddle: Paddle,
+    keyboard: KeyboardState,
+    level: [8][8]Block
+};
+// zig fmt: on
 
 fn handle_event(event: sdl.SDL_Event, keyboard_state: *KeyboardState) bool {
     var should_close = false;
@@ -39,7 +70,90 @@ fn init_game_state() LevelState {
     const paddle = Paddle{};
     const ball = Ball{ .vel_y = 10 };
     const keyboard_state = KeyboardState{};
-    const blocks = [8][8]Block{ [8]Block{ Block{ .x = 55, .y = 30 }, Block{ .x = 285, .y = 30 }, Block{ .x = 515, .y = 30 }, Block{ .x = 745, .y = 30 }, Block{ .x = 975, .y = 30 }, Block{ .x = 1205, .y = 30 }, Block{ .x = 1435, .y = 30 }, Block{ .x = 1665, .y = 30 } }, [8]Block{ Block{ .x = 55, .y = 70 }, Block{ .x = 285, .y = 70 }, Block{ .x = 515, .y = 70 }, Block{ .x = 745, .y = 70 }, Block{ .x = 975, .y = 70 }, Block{ .x = 1205, .y = 70 }, Block{ .x = 1435, .y = 70 }, Block{ .x = 1665, .y = 70 } }, [8]Block{ Block{ .x = 55, .y = 110 }, Block{ .x = 285, .y = 110 }, Block{ .x = 515, .y = 110 }, Block{ .x = 745, .y = 110 }, Block{ .x = 975, .y = 110 }, Block{ .x = 1205, .y = 110 }, Block{ .x = 1435, .y = 110 }, Block{ .x = 1665, .y = 110 } }, [8]Block{ Block{ .x = 55, .y = 150 }, Block{ .x = 285, .y = 150 }, Block{ .x = 515, .y = 150 }, Block{ .x = 745, .y = 150 }, Block{ .x = 975, .y = 150 }, Block{ .x = 1205, .y = 150 }, Block{ .x = 1435, .y = 150 }, Block{ .x = 1665, .y = 150 } }, [8]Block{ Block{ .x = 55, .y = 190 }, Block{ .x = 285, .y = 190 }, Block{ .x = 515, .y = 190 }, Block{ .x = 745, .y = 190 }, Block{ .x = 975, .y = 190 }, Block{ .x = 1205, .y = 190 }, Block{ .x = 1435, .y = 190 }, Block{ .x = 1665, .y = 190 } }, [8]Block{ Block{ .x = 55, .y = 230 }, Block{ .x = 285, .y = 230 }, Block{ .x = 515, .y = 230 }, Block{ .x = 745, .y = 230 }, Block{ .x = 975, .y = 230 }, Block{ .x = 1205, .y = 230 }, Block{ .x = 1435, .y = 230 }, Block{ .x = 1665, .y = 230 } }, [8]Block{ Block{ .x = 55, .y = 270 }, Block{ .x = 285, .y = 270 }, Block{ .x = 515, .y = 270 }, Block{ .x = 745, .y = 270 }, Block{ .x = 975, .y = 270 }, Block{ .x = 1205, .y = 270 }, Block{ .x = 1435, .y = 270 }, Block{ .x = 1665, .y = 270 } }, [8]Block{ Block{ .x = 55, .y = 310 }, Block{ .x = 285, .y = 310 }, Block{ .x = 515, .y = 310 }, Block{ .x = 745, .y = 310 }, Block{ .x = 975, .y = 310 }, Block{ .x = 1205, .y = 310 }, Block{ .x = 1435, .y = 310 }, Block{ .x = 1665, .y = 310 } } };
+    // zig fmt: off
+    const blocks = [8][8]Block{
+        [8]Block{
+            Block{ .x = 55, .y = 30 },
+            Block{ .x = 285, .y = 30 },
+            Block{ .x = 515, .y = 30 },
+            Block{ .x = 745, .y = 30 },
+            Block{ .x = 975, .y = 30 },
+            Block{ .x = 1205, .y = 30 },
+            Block{ .x = 1435, .y = 30 },
+            Block{ .x = 1665, .y = 30 }
+        },
+        [8]Block{
+            Block{ .x = 55, .y = 70 },
+            Block{ .x = 285, .y = 70 },
+            Block{ .x = 515, .y = 70 },
+            Block{ .x = 745, .y = 70 },
+            Block{ .x = 975, .y = 70 },
+            Block{ .x = 1205, .y = 70 },
+            Block{ .x = 1435, .y = 70 },
+            Block{ .x = 1665, .y = 70 }
+        },
+        [8]Block{
+            Block{ .x = 55, .y = 110 },
+            Block{ .x = 285, .y = 110 },
+            Block{ .x = 515, .y = 110 },
+            Block{ .x = 745, .y = 110 },
+            Block{ .x = 975, .y = 110 },
+            Block{ .x = 1205, .y = 110 },
+            Block{ .x = 1435, .y = 110 },
+            Block{ .x = 1665, .y = 110 }
+        },
+        [8]Block{
+            Block{ .x = 55, .y = 150 },
+            Block{ .x = 285, .y = 150 },
+            Block{ .x = 515, .y = 150 },
+            Block{ .x = 745, .y = 150 },
+            Block{ .x = 975, .y = 150 },
+            Block{ .x = 1205, .y = 150 },
+            Block{ .x = 1435, .y = 150 },
+            Block{ .x = 1665, .y = 150 }
+        },
+        [8]Block{
+            Block{ .x = 55, .y = 190 },
+            Block{ .x = 285, .y = 190 },
+            Block{ .x = 515, .y = 190 },
+            Block{ .x = 745, .y = 190 },
+            Block{ .x = 975, .y = 190 },
+            Block{ .x = 1205, .y = 190 },
+            Block{ .x = 1435, .y = 190 },
+            Block{ .x = 1665, .y = 190 }
+        },
+        [8]Block{
+            Block{ .x = 55, .y = 230 },
+            Block{ .x = 285, .y = 230 },
+            Block{ .x = 515, .y = 230 },
+            Block{ .x = 745, .y = 230 },
+            Block{ .x = 975, .y = 230 },
+            Block{ .x = 1205, .y = 230 },
+            Block{ .x = 1435, .y = 230 },
+            Block{ .x = 1665, .y = 230 }
+        },
+        [8]Block{
+            Block{ .x = 55, .y = 270 },
+            Block{ .x = 285, .y = 270 },
+            Block{ .x = 515, .y = 270 },
+            Block{ .x = 745, .y = 270 },
+            Block{ .x = 975, .y = 270 },
+            Block{ .x = 1205, .y = 270 },
+            Block{ .x = 1435, .y = 270 },
+            Block{ .x = 1665, .y = 270 }
+        },
+        [8]Block{
+            Block{ .x = 55, .y = 310 },
+            Block{ .x = 285, .y = 310 },
+            Block{ .x = 515, .y = 310 },
+            Block{ .x = 745, .y = 310 },
+            Block{ .x = 975, .y = 310 },
+            Block{ .x = 1205, .y = 310 },
+            Block{ .x = 1435, .y = 310 },
+            Block{ .x = 1665, .y = 310 }
+        }
+    };
+    // zig fmt: on
 
     return LevelState{ .paddle = paddle, .ball = ball, .keyboard = keyboard_state, .level = blocks };
 }
