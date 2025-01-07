@@ -52,9 +52,11 @@ fn render_paddle(renderer: ?*sdl.SDL_Renderer, paddle: *Paddle) void {
 }
 
 fn render_block(renderer: ?*sdl.SDL_Renderer, block: *Block) void {
-    const block_rect = sdl.SDL_Rect{ .x = block.x, .y = block.y, .w = block.width, .h = block.height };
-    _ = sdl.SDL_SetRenderDrawColor(renderer, 0x00, 0xcc, 0xcc, 0xff);
-    _ = sdl.SDL_RenderFillRect(renderer, &block_rect);
+    if (block.hp > 0) {
+        const block_rect = sdl.SDL_Rect{ .x = block.x, .y = block.y, .w = block.width, .h = block.height };
+        _ = sdl.SDL_SetRenderDrawColor(renderer, 0x00, 0xcc, 0xcc, 0xff);
+        _ = sdl.SDL_RenderFillRect(renderer, &block_rect);
+    }
 }
 
 // Midpoint Circle Algorithm, repeated in order to fill.  It doesn't fill completely, but the missing pixels
@@ -118,8 +120,9 @@ fn test_paddle_collision(ball: *Ball, paddle: *Paddle) void {
 }
 
 fn test_block_collision(ball: *Ball, block: *Block) void {
-    if ((ball.y + ball.radius > block.y) and (ball.y - ball.radius < block.y + block.height) and (ball.x - ball.radius > block.x) and (ball.x - ball.radius < block.x + block.width)) {
+    if (block.hp > 0 and (ball.y + ball.radius > block.y) and (ball.y - ball.radius < block.y + block.height) and (ball.x - ball.radius > block.x) and (ball.x - ball.radius < block.x + block.width)) {
         ball.vel_y = -ball.vel_y;
+        block.hp -= 1;
     }
 }
 
