@@ -14,13 +14,15 @@ const Paddle = struct {
     vel_x: f64 = 0,
     left_bound: i32 = 30,
     right_bound: i32 = screen_width - 230,
-    max_vel: f64 = 1000 };
+    max_vel: f64 = 750
+};
 const Ball = struct {
     radius: i32 = 15,
     x: i32 = screen_width / 2,
     y: i32 = screen_height / 2,
     vel_x: f64 = 0,
-    vel_y: f64 = 0
+    vel_y: f64 = 0,
+    max_vel_x: f64 = 1000
 };
 const Block = struct {
     width: i32 = 200,
@@ -66,11 +68,31 @@ fn handle_event(event: sdl.SDL_Event, keyboard_state: *KeyboardState) bool {
     return should_close;
 }
 
+fn block_health(layout: LevelLayout, level: *LevelState) void {
+    for (0..8) |x| {
+        for (0..8) |y| {
+            level.level[x][y].hp = layout.blocks[x][y];
+        }
+    }
+}
+
 fn init_game_state() LevelState {
     const paddle = Paddle{};
     const ball = Ball{ .vel_y = 10 };
     const keyboard_state = KeyboardState{};
     // zig fmt: off
+    const layout = LevelLayout{
+        .blocks = [8][8]i32{
+            [8]i32{1, 1, 1, 1, 1, 1, 1, 1},
+            [8]i32{1, 1, 1, 1, 1, 1, 1, 1},
+            [8]i32{1, 1, 1, 1, 1, 1, 1, 1},
+            [8]i32{1, 1, 1, 1, 1, 1, 1, 1},
+            [8]i32{1, 1, 1, 1, 1, 1, 1, 1},
+            [8]i32{1, 1, 1, 1, 1, 1, 1, 1},
+            [8]i32{1, 1, 1, 1, 1, 1, 1, 1},
+            [8]i32{1, 1, 1, 1, 1, 1, 1, 1}
+        }
+    };
     const blocks = [8][8]Block{
         [8]Block{
             Block{ .x = 55, .y = 30 },
@@ -154,8 +176,10 @@ fn init_game_state() LevelState {
         }
     };
     // zig fmt: on
+    var level = LevelState{ .paddle = paddle, .ball = ball, .keyboard = keyboard_state, .level = blocks };
+    block_health(layout, &level);
 
-    return LevelState{ .paddle = paddle, .ball = ball, .keyboard = keyboard_state, .level = blocks };
+    return level;
 }
 
 fn render_borders(renderer: ?*sdl.SDL_Renderer) void {
@@ -241,6 +265,11 @@ fn test_paddle_collision(ball: *Ball, paddle: *Paddle) void {
     if ((ball.y + ball.radius > paddle.y) and (ball.x - ball.radius > paddle.x) and (ball.x - ball.radius < paddle.x + paddle.width)) {
         ball.vel_y = -ball.vel_y;
         ball.vel_x += paddle.vel_x;
+        if (ball.vel_x > ball.max_vel_x) {
+            ball.vel_x = ball.max_vel_x;
+        } else if (ball.vel_x < -ball.max_vel_x) {
+            ball.vel_x = -ball.max_vel_x;
+        }
     }
 }
 
