@@ -266,6 +266,7 @@ fn test_border_collision(ball: *Ball) bool {
     return false;
 }
 
+// TODO: Detect collision from the side and bounce to the side
 fn test_paddle_collision(ball: *Ball, paddle: *Paddle) void {
     if ((ball.y + ball.radius > paddle.y) and (ball.x - ball.radius > paddle.x) and (ball.x - ball.radius < paddle.x + paddle.width)) {
         ball.vel_y = -ball.vel_y;
@@ -278,6 +279,7 @@ fn test_paddle_collision(ball: *Ball, paddle: *Paddle) void {
     }
 }
 
+// TODO: use ball velocity to detect collision direction
 fn test_block_collision(ball: *Ball, block: *Block) void {
     if (block.hp > 0 and (ball.y + ball.radius > block.y) and (ball.y - ball.radius < block.y + block.height) and (ball.x + ball.radius > block.x) and (ball.x - ball.radius < block.x + block.width)) {
         block.hp -= 1;
