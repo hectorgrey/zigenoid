@@ -279,7 +279,7 @@ fn test_paddle_collision(ball: *Ball, paddle: *Paddle) void {
 }
 
 fn test_block_collision(ball: *Ball, block: *Block) void {
-    if (block.hp > 0 and (ball.y + ball.radius > block.y) and (ball.y - ball.radius < block.y + block.height) and (ball.x - ball.radius > block.x) and (ball.x - ball.radius < block.x + block.width)) {
+    if (block.hp > 0 and (ball.y + ball.radius > block.y) and (ball.y - ball.radius < block.y + block.height) and (ball.x + ball.radius > block.x) and (ball.x - ball.radius < block.x + block.width)) {
         block.hp -= 1;
         const relative_x = ball.x - block.x;
         if ((relative_x > 0) and (relative_x < block.width)) {
