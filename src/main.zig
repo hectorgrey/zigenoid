@@ -76,23 +76,24 @@ fn block_health(layout: LevelLayout, level: *LevelState) void {
     }
 }
 
+fn load_level(path: []const u8, level: *LevelState) !void {
+    const alloc = std.heap.page_allocator;
+    const file = try std.fs.cwd().openFile(path, .{});
+    defer file.close();
+
+    var reader = std.json.reader(alloc, file.reader());
+    const parsed = try std.json.parseFromTokenSource(LevelLayout, alloc, &reader, .{});
+    defer parsed.deinit();
+
+    const layout = parsed.value;
+    block_health(layout, level);
+}
+
 fn init_game_state() LevelState {
     const paddle = Paddle{};
     const ball = Ball{ .vel_y = 10 };
     const keyboard = KeyboardState{};
     // zig fmt: off
-    const layout = LevelLayout{
-        .blocks = [8][8]i32{
-            [8]i32{1, 1, 1, 1, 1, 1, 1, 1},
-            [8]i32{1, 1, 1, 1, 1, 1, 1, 1},
-            [8]i32{1, 1, 1, 1, 1, 1, 1, 1},
-            [8]i32{1, 1, 1, 1, 1, 1, 1, 1},
-            [8]i32{1, 1, 1, 1, 1, 1, 1, 1},
-            [8]i32{1, 1, 1, 1, 1, 1, 1, 1},
-            [8]i32{1, 1, 1, 1, 1, 1, 1, 1},
-            [8]i32{1, 1, 1, 1, 1, 1, 1, 1}
-        }
-    };
     const blocks = [8][8]Block{
         [8]Block{
             Block{ .x = 55, .y = 30 },
@@ -176,10 +177,8 @@ fn init_game_state() LevelState {
         }
     };
     // zig fmt: on
-    var level = LevelState{ .paddle = paddle, .ball = ball, .keyboard = keyboard, .level = blocks };
-    block_health(layout, &level);
 
-    return level;
+    return LevelState{ .paddle = paddle, .ball = ball, .keyboard = keyboard, .level = blocks };
 }
 
 fn render_borders(renderer: ?*sdl.SDL_Renderer) void {
@@ -304,6 +303,7 @@ pub fn main() !void {
     defer sdl.SDL_DestroyRenderer(renderer);
 
     var game_state = init_game_state();
+    try load_level("level1.json", &game_state);
     var running = true;
 
     const freq = @as(f64, @floatFromInt(sdl.SDL_GetPerformanceFrequency()));
