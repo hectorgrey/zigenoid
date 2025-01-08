@@ -14,7 +14,7 @@ const Paddle = struct {
     vel_x: f64 = 0,
     left_bound: i32 = 30,
     right_bound: i32 = screen_width - 230,
-    max_vel: f64 = 750
+    max_vel: f64 = 1000
 };
 const Ball = struct {
     radius: i32 = 15,
@@ -22,7 +22,7 @@ const Ball = struct {
     y: i32 = screen_height / 2,
     vel_x: f64 = 0,
     vel_y: f64 = 0,
-    max_vel_x: f64 = 1000
+    max_vel_x: f64 = 750
 };
 const Block = struct {
     width: i32 = 200,
@@ -252,9 +252,15 @@ fn test_border_collision(ball: *Ball) bool {
     if (ball.y > screen_height - ball.radius - 10) {
         return true;
     } else if (ball.y < ball.radius + 10) {
+        ball.y = ball.radius + 10;
         ball.vel_y = -ball.vel_y;
     }
-    if ((ball.x < ball.radius + 10) or (ball.x > screen_width - ball.radius - 10)) {
+    if (ball.x < ball.radius + 10) {
+        ball.x = ball.radius + 10;
+        ball.vel_x = -ball.vel_x;
+    }
+    if (ball.x > screen_width - ball.radius - 10) {
+        ball.x = screen_width - ball.radius - 10;
         ball.vel_x = -ball.vel_x;
     }
     return false;
@@ -274,8 +280,13 @@ fn test_paddle_collision(ball: *Ball, paddle: *Paddle) void {
 
 fn test_block_collision(ball: *Ball, block: *Block) void {
     if (block.hp > 0 and (ball.y + ball.radius > block.y) and (ball.y - ball.radius < block.y + block.height) and (ball.x - ball.radius > block.x) and (ball.x - ball.radius < block.x + block.width)) {
-        ball.vel_y = -ball.vel_y;
         block.hp -= 1;
+        const relative_x = ball.x - block.x;
+        if ((relative_x > 0) and (relative_x < block.width)) {
+            ball.vel_y = -ball.vel_y;
+        } else {
+            ball.vel_x = -ball.vel_x;
+        }
     }
 }
 
