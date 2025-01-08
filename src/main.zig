@@ -45,21 +45,21 @@ const LevelState = struct {
 };
 // zig fmt: on
 
-fn handle_event(event: sdl.SDL_Event, keyboard_state: *KeyboardState) bool {
+fn handle_event(event: sdl.SDL_Event, keyboard: *KeyboardState) bool {
     var should_close = false;
     switch (event.type) {
         sdl.SDL_QUIT => should_close = true,
         sdl.SDL_KEYDOWN => {
             switch (event.key.keysym.sym) {
-                sdl.SDLK_LEFT => keyboard_state.left.is_down = true,
-                sdl.SDLK_RIGHT => keyboard_state.right.is_down = true,
+                sdl.SDLK_LEFT => keyboard.left.is_down = true,
+                sdl.SDLK_RIGHT => keyboard.right.is_down = true,
                 else => {},
             }
         },
         sdl.SDL_KEYUP => {
             switch (event.key.keysym.sym) {
-                sdl.SDLK_LEFT => keyboard_state.left.is_down = false,
-                sdl.SDLK_RIGHT => keyboard_state.right.is_down = false,
+                sdl.SDLK_LEFT => keyboard.left.is_down = false,
+                sdl.SDLK_RIGHT => keyboard.right.is_down = false,
                 else => {},
             }
         },
@@ -79,7 +79,7 @@ fn block_health(layout: LevelLayout, level: *LevelState) void {
 fn init_game_state() LevelState {
     const paddle = Paddle{};
     const ball = Ball{ .vel_y = 10 };
-    const keyboard_state = KeyboardState{};
+    const keyboard = KeyboardState{};
     // zig fmt: off
     const layout = LevelLayout{
         .blocks = [8][8]i32{
@@ -176,7 +176,7 @@ fn init_game_state() LevelState {
         }
     };
     // zig fmt: on
-    var level = LevelState{ .paddle = paddle, .ball = ball, .keyboard = keyboard_state, .level = blocks };
+    var level = LevelState{ .paddle = paddle, .ball = ball, .keyboard = keyboard, .level = blocks };
     block_health(layout, &level);
 
     return level;
