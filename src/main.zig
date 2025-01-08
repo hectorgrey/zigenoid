@@ -6,6 +6,13 @@ const screen_height = 1080;
 
 // zig fmt currently places all declarations on a single line each, which is difficult to read and edit in the case of structs and arrays.
 // zig fmt: off
+const GameState = enum {
+    start,
+    play,
+    pause,
+    lost,
+    quit
+};
 const Paddle = struct {
     width: i32 = 200,
     height: i32 = 30,
@@ -17,9 +24,9 @@ const Paddle = struct {
     max_vel: f64 = 1000
 };
 const Ball = struct {
-    radius: i32 = 15,
+    radius: i32,
     x: i32 = screen_width / 2,
-    y: i32 = screen_height / 2,
+    y: i32,
     vel_x: f64 = 0,
     vel_y: f64 = 0,
     max_vel_x: f64 = 750
@@ -31,41 +38,46 @@ const Block = struct {
     y: i32,
     hp: i32 = 1
 };
-const KeyState = struct { is_down: bool = false };
+const KeyState = struct { is_down: bool = false, was_down: bool = false };
 const KeyboardState = struct {
     left: KeyState = KeyState{},
-    right: KeyState = KeyState{}
+    right: KeyState = KeyState{},
+    space: KeyState = KeyState{},
+    esc: KeyState = KeyState{}
 };
 const LevelLayout = struct { blocks: [8][8]i32 };
 const LevelState = struct {
     ball: Ball,
     paddle: Paddle,
     keyboard: KeyboardState,
-    level: [8][8]Block
+    level: [8][8]Block,
+    state: GameState = GameState.start
 };
 // zig fmt: on
 
-fn handle_event(event: sdl.SDL_Event, keyboard: *KeyboardState) bool {
-    var should_close = false;
+fn handle_event(event: sdl.SDL_Event, game_state: *LevelState) void {
     switch (event.type) {
-        sdl.SDL_QUIT => should_close = true,
+        sdl.SDL_QUIT => game_state.state = GameState.quit,
         sdl.SDL_KEYDOWN => {
             switch (event.key.keysym.sym) {
-                sdl.SDLK_LEFT => keyboard.left.is_down = true,
-                sdl.SDLK_RIGHT => keyboard.right.is_down = true,
+                sdl.SDLK_LEFT => game_state.keyboard.left.is_down = true,
+                sdl.SDLK_RIGHT => game_state.keyboard.right.is_down = true,
+                sdl.SDLK_SPACE => game_state.keyboard.space.is_down = true,
+                sdl.SDLK_ESCAPE => game_state.keyboard.esc.is_down = true,
                 else => {},
             }
         },
         sdl.SDL_KEYUP => {
             switch (event.key.keysym.sym) {
-                sdl.SDLK_LEFT => keyboard.left.is_down = false,
-                sdl.SDLK_RIGHT => keyboard.right.is_down = false,
+                sdl.SDLK_LEFT => game_state.keyboard.left.is_down = false,
+                sdl.SDLK_RIGHT => game_state.keyboard.right.is_down = false,
+                sdl.SDLK_SPACE => game_state.keyboard.space.is_down = false,
+                sdl.SDLK_ESCAPE => game_state.keyboard.esc.is_down = false,
                 else => {},
             }
         },
-        else => should_close = false,
+        else => {},
     }
-    return should_close;
 }
 
 fn block_health(layout: LevelLayout, level: *LevelState) void {
@@ -90,8 +102,9 @@ fn load_level(path: []const u8, level: *LevelState) !void {
 }
 
 fn init_game_state() LevelState {
+    const rad = 15;
     const paddle = Paddle{};
-    const ball = Ball{ .vel_y = 10 };
+    const ball = Ball{ .y = paddle.y - rad, .radius = 15 };
     const keyboard = KeyboardState{};
     // zig fmt: off
     const blocks = [8][8]Block{
@@ -292,6 +305,64 @@ fn test_block_collision(ball: *Ball, block: *Block) void {
     }
 }
 
+fn move_paddle(game_state: *LevelState, dt: f64) void {
+    if (game_state.keyboard.left.is_down) {
+        game_state.paddle.vel_x -= 30 * dt;
+    }
+    if (game_state.keyboard.right.is_down) {
+        game_state.paddle.vel_x += 30 * dt;
+    }
+
+    game_state.paddle.x += @as(i32, @intFromFloat(game_state.paddle.vel_x));
+
+    if (game_state.paddle.vel_x > game_state.paddle.max_vel) {
+        game_state.paddle.vel_x = game_state.paddle.max_vel;
+    } else if (game_state.paddle.vel_x < -game_state.paddle.max_vel) {
+        game_state.paddle.vel_x = -game_state.paddle.max_vel;
+    }
+
+    if (game_state.paddle.vel_x > 0) {
+        game_state.paddle.vel_x -= 10 * dt;
+    } else if (game_state.paddle.vel_x < 0) {
+        game_state.paddle.vel_x += 10 * dt;
+    }
+    if (game_state.paddle.x < game_state.paddle.left_bound) {
+        game_state.paddle.x = game_state.paddle.left_bound;
+        game_state.paddle.vel_x = -game_state.paddle.vel_x;
+    } else if (game_state.paddle.x > game_state.paddle.right_bound) {
+        game_state.paddle.x = game_state.paddle.right_bound;
+        game_state.paddle.vel_x = -game_state.paddle.vel_x;
+    }
+}
+
+fn run_start(game_state: *LevelState, dt: f64) void {
+    move_paddle(game_state, dt);
+    game_state.ball.x = game_state.paddle.x + @divFloor(game_state.paddle.width, 2);
+    if ((game_state.keyboard.space.is_down) and (!game_state.keyboard.space.was_down)) {
+        game_state.ball.vel_x = game_state.paddle.vel_x;
+        game_state.ball.vel_y = -10;
+        game_state.state = GameState.play;
+    }
+}
+
+fn run_game(game_state: *LevelState, dt: f64) void {
+    move_paddle(game_state, dt);
+
+    game_state.ball.x += @as(i32, @intFromFloat(game_state.ball.vel_x));
+    game_state.ball.y += @as(i32, @intFromFloat(game_state.ball.vel_y));
+
+    const lost = test_border_collision(&game_state.ball);
+    if (lost) {
+        game_state.state = GameState.lost;
+    }
+    test_paddle_collision(&game_state.ball, &game_state.paddle);
+    for (0..8) |x| {
+        for (0..8) |y| {
+            test_block_collision(&game_state.ball, &game_state.level[x][y]);
+        }
+    }
+}
+
 pub fn main() !void {
     if (sdl.SDL_Init(sdl.SDL_INIT_VIDEO) < 0) {
         std.debug.print("Failed to initialise SDL: {s}\n", .{sdl.SDL_GetError()});
@@ -317,64 +388,49 @@ pub fn main() !void {
 
     var game_state = init_game_state();
     try load_level("level1.json", &game_state);
-    var running = true;
 
     const freq = @as(f64, @floatFromInt(sdl.SDL_GetPerformanceFrequency()));
     var count = @as(f64, @floatFromInt(sdl.SDL_GetPerformanceCounter()));
     var last_frame = count / freq;
-    while (running) {
+    while (game_state.state != GameState.quit) {
         count = @as(f64, @floatFromInt(sdl.SDL_GetPerformanceCounter()));
         const curr_frame = count / freq;
         const dt = curr_frame - last_frame;
+
+        // Checking whether specific keys are held down
+        game_state.keyboard.esc.was_down = game_state.keyboard.esc.is_down;
+        game_state.keyboard.space.was_down = game_state.keyboard.space.is_down;
+
         last_frame = curr_frame;
         var event: sdl.SDL_Event = undefined;
         while (sdl.SDL_PollEvent(&event) > 0) {
-            const should_close = handle_event(event, &game_state.keyboard);
-            if (should_close) {
-                running = false;
-            }
+            handle_event(event, &game_state);
         }
 
-        if (game_state.keyboard.left.is_down) {
-            game_state.paddle.vel_x -= 30 * dt;
-        }
-        if (game_state.keyboard.right.is_down) {
-            game_state.paddle.vel_x += 30 * dt;
-        }
-
-        game_state.paddle.x += @as(i32, @intFromFloat(game_state.paddle.vel_x));
-
-        if (game_state.paddle.vel_x > game_state.paddle.max_vel) {
-            game_state.paddle.vel_x = game_state.paddle.max_vel;
-        } else if (game_state.paddle.vel_x < -game_state.paddle.max_vel) {
-            game_state.paddle.vel_x = -game_state.paddle.max_vel;
-        }
-
-        if (game_state.paddle.vel_x > 0) {
-            game_state.paddle.vel_x -= 10 * dt;
-        } else if (game_state.paddle.vel_x < 0) {
-            game_state.paddle.vel_x += 10 * dt;
-        }
-        if (game_state.paddle.x < game_state.paddle.left_bound) {
-            game_state.paddle.x = game_state.paddle.left_bound;
-            game_state.paddle.vel_x = -game_state.paddle.vel_x;
-        } else if (game_state.paddle.x > game_state.paddle.right_bound) {
-            game_state.paddle.x = game_state.paddle.right_bound;
-            game_state.paddle.vel_x = -game_state.paddle.vel_x;
-        }
-
-        game_state.ball.x += @as(i32, @intFromFloat(game_state.ball.vel_x));
-        game_state.ball.y += @as(i32, @intFromFloat(game_state.ball.vel_y));
-
-        const should_close = test_border_collision(&game_state.ball);
-        if (should_close) {
-            running = false;
-        }
-        test_paddle_collision(&game_state.ball, &game_state.paddle);
-        for (0..8) |x| {
-            for (0..8) |y| {
-                test_block_collision(&game_state.ball, &game_state.level[x][y]);
-            }
+        switch (game_state.state) {
+            GameState.start => run_start(&game_state, dt),
+            GameState.play => {
+                if ((game_state.keyboard.esc.is_down) and (!game_state.keyboard.esc.was_down)) {
+                    game_state.state = GameState.pause;
+                }
+                run_game(&game_state, dt);
+            },
+            GameState.pause => {
+                if ((game_state.keyboard.esc.is_down) and (!game_state.keyboard.esc.was_down)) {
+                    game_state.state = GameState.play;
+                }
+            },
+            GameState.lost => {
+                if (game_state.keyboard.space.is_down) {
+                    try load_level("level1.json", &game_state);
+                    game_state.ball.x = game_state.paddle.x + @divFloor(game_state.paddle.width, 2);
+                    game_state.ball.y = game_state.paddle.y - game_state.ball.radius;
+                    game_state.paddle.x = (screen_width / 2) - @divFloor(game_state.paddle.width, 2);
+                    game_state.paddle.vel_x = 0;
+                    game_state.state = GameState.start;
+                }
+            },
+            else => {},
         }
 
         _ = sdl.SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xff);
