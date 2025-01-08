@@ -266,6 +266,7 @@ fn test_border_collision(ball: *Ball) bool {
     return false;
 }
 
+// TODO: Detect collision from the side and bounce to the side
 fn test_paddle_collision(ball: *Ball, paddle: *Paddle) void {
     if ((ball.y + ball.radius > paddle.y) and (ball.x - ball.radius > paddle.x) and (ball.x - ball.radius < paddle.x + paddle.width)) {
         ball.vel_y = -ball.vel_y;
