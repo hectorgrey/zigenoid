@@ -8,7 +8,7 @@ pub fn build(b: *std.Build) void {
     });
 
     exe.linkLibC();
-    exe.linkSystemLibrary("SDL2");
+    exe.linkSystemLibrary("SDL3");
     b.installArtifact(exe);
 
     const run_exe = b.addRunArtifact(exe);

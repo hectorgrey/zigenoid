@@ -1,4 +1,4 @@
-const sdl = @cImport(@cInclude("SDL2/SDL.h"));
+const sdl = @cImport(@cInclude("SDL3/SDL.h"));
 const std = @import("std");
 
 const screen_width = 1920;
@@ -14,28 +14,28 @@ const GameState = enum {
     quit
 };
 const Paddle = struct {
-    width: i32 = 200,
-    height: i32 = 30,
-    x: i32 = (screen_width / 2) - 100,
-    y: i32 = screen_height - 60,
+    width: f32 = 200,
+    height: f32 = 30,
+    x: f32 = (screen_width / 2) - 100,
+    y: f32 = screen_height - 60,
     vel_x: f64 = 0,
-    left_bound: i32 = 30,
-    right_bound: i32 = screen_width - 230,
+    left_bound: f32 = 30,
+    right_bound: f32 = screen_width - 230,
     max_vel: f64 = 1000
 };
 const Ball = struct {
-    radius: i32,
-    x: i32 = screen_width / 2,
-    y: i32,
+    radius: f32,
+    x: f32 = screen_width / 2,
+    y: f32,
     vel_x: f64 = 0,
     vel_y: f64 = 0,
     max_vel_x: f64 = 750
 };
 const Block = struct {
-    width: i32 = 200,
-    height: i32 = 30,
-    x: i32,
-    y: i32,
+    width: f32 = 200,
+    height: f32 = 30,
+    x: f32,
+    y: f32,
     hp: i32 = 1
 };
 const KeyState = struct { is_down: bool = false, was_down: bool = false };
@@ -57,9 +57,9 @@ const LevelState = struct {
 
 fn handle_event(event: sdl.SDL_Event, game_state: *LevelState) void {
     switch (event.type) {
-        sdl.SDL_QUIT => game_state.state = GameState.quit,
-        sdl.SDL_KEYDOWN => {
-            switch (event.key.keysym.sym) {
+        sdl.SDL_EVENT_QUIT => game_state.state = GameState.quit,
+        sdl.SDL_EVENT_KEY_DOWN => {
+            switch (event.key.key) {
                 sdl.SDLK_LEFT => game_state.keyboard.left.is_down = true,
                 sdl.SDLK_RIGHT => game_state.keyboard.right.is_down = true,
                 sdl.SDLK_SPACE => game_state.keyboard.space.is_down = true,
@@ -67,8 +67,8 @@ fn handle_event(event: sdl.SDL_Event, game_state: *LevelState) void {
                 else => {},
             }
         },
-        sdl.SDL_KEYUP => {
-            switch (event.key.keysym.sym) {
+        sdl.SDL_EVENT_KEY_UP => {
+            switch (event.key.key) {
                 sdl.SDLK_LEFT => game_state.keyboard.left.is_down = false,
                 sdl.SDLK_RIGHT => game_state.keyboard.right.is_down = false,
                 sdl.SDLK_SPACE => game_state.keyboard.space.is_down = false,
@@ -195,10 +195,10 @@ fn init_game_state() LevelState {
 }
 
 fn render_borders(renderer: ?*sdl.SDL_Renderer) void {
-    const top_rect = sdl.SDL_Rect{ .x = 0, .y = 0, .w = screen_width, .h = 10 };
-    const left_rect = sdl.SDL_Rect{ .x = 0, .y = 10, .w = 10, .h = screen_height - 20 };
-    const right_rect = sdl.SDL_Rect{ .x = screen_width - 10, .y = 10, .w = 10, .h = screen_height - 20 };
-    const bottom_rect = sdl.SDL_Rect{ .x = 0, .y = screen_height - 10, .w = screen_width, .h = 10 };
+    const top_rect = sdl.SDL_FRect{ .x = 0, .y = 0, .w = screen_width, .h = 10 };
+    const left_rect = sdl.SDL_FRect{ .x = 0, .y = 10, .w = 10, .h = screen_height - 20 };
+    const right_rect = sdl.SDL_FRect{ .x = screen_width - 10, .y = 10, .w = 10, .h = screen_height - 20 };
+    const bottom_rect = sdl.SDL_FRect{ .x = 0, .y = screen_height - 10, .w = screen_width, .h = 10 };
     _ = sdl.SDL_SetRenderDrawColor(renderer, 0x00, 0x60, 0x5b, 0xff);
     _ = sdl.SDL_RenderFillRect(renderer, &top_rect);
     _ = sdl.SDL_RenderFillRect(renderer, &left_rect);
@@ -207,14 +207,14 @@ fn render_borders(renderer: ?*sdl.SDL_Renderer) void {
 }
 
 fn render_paddle(renderer: ?*sdl.SDL_Renderer, paddle: *Paddle) void {
-    const paddle_rect = sdl.SDL_Rect{ .x = paddle.x, .y = paddle.y, .w = paddle.width, .h = paddle.height };
+    const paddle_rect = sdl.SDL_FRect{ .x = paddle.x, .y = paddle.y, .w = paddle.width, .h = paddle.height };
     _ = sdl.SDL_SetRenderDrawColor(renderer, 0xcc, 0xcc, 0xcc, 0xff);
     _ = sdl.SDL_RenderFillRect(renderer, &paddle_rect);
 }
 
 fn render_block(renderer: ?*sdl.SDL_Renderer, block: *Block) void {
     if (block.hp > 0) {
-        const block_rect = sdl.SDL_Rect{ .x = block.x, .y = block.y, .w = block.width, .h = block.height };
+        const block_rect = sdl.SDL_FRect{ .x = block.x, .y = block.y, .w = block.width, .h = block.height };
         _ = sdl.SDL_SetRenderDrawColor(renderer, 0x00, 0xcc, 0xcc, 0xff);
         _ = sdl.SDL_RenderFillRect(renderer, &block_rect);
     }
@@ -223,26 +223,26 @@ fn render_block(renderer: ?*sdl.SDL_Renderer, block: *Block) void {
 // Midpoint Circle Algorithm, repeated in order to fill.  It doesn't fill completely, but the missing pixels
 // look like arrows, which works aesthetically.
 fn render_ball(renderer: ?*sdl.SDL_Renderer, ball: *Ball) void {
-    var diameter: i32 = ball.radius * 2;
+    var diameter: f32 = ball.radius * 2.0;
     _ = sdl.SDL_SetRenderDrawColor(renderer, 0xcc, 0xcc, 0xcc, 0xff);
 
     while (diameter > 0) {
-        const radius: i32 = @divFloor(diameter, 2);
-        var x: i32 = radius - 1;
-        var y: i32 = 0;
-        var tx: i32 = 1;
-        var ty: i32 = 1;
-        var err: i32 = tx - diameter;
+        const radius: f32 = diameter / 2;
+        var x: f32 = radius - 1;
+        var y: f32 = 0;
+        var tx: f32 = 1;
+        var ty: f32 = 1;
+        var err: f32 = tx - diameter;
 
         while (x >= y) {
-            _ = sdl.SDL_RenderDrawPoint(renderer, ball.x + x, ball.y - y);
-            _ = sdl.SDL_RenderDrawPoint(renderer, ball.x + x, ball.y + y);
-            _ = sdl.SDL_RenderDrawPoint(renderer, ball.x - x, ball.y - y);
-            _ = sdl.SDL_RenderDrawPoint(renderer, ball.x - x, ball.y + y);
-            _ = sdl.SDL_RenderDrawPoint(renderer, ball.x + y, ball.y - x);
-            _ = sdl.SDL_RenderDrawPoint(renderer, ball.x + y, ball.y + x);
-            _ = sdl.SDL_RenderDrawPoint(renderer, ball.x - y, ball.y - x);
-            _ = sdl.SDL_RenderDrawPoint(renderer, ball.x - y, ball.y + x);
+            _ = sdl.SDL_RenderPoint(renderer, ball.x + x, ball.y - y);
+            _ = sdl.SDL_RenderPoint(renderer, ball.x + x, ball.y + y);
+            _ = sdl.SDL_RenderPoint(renderer, ball.x - x, ball.y - y);
+            _ = sdl.SDL_RenderPoint(renderer, ball.x - x, ball.y + y);
+            _ = sdl.SDL_RenderPoint(renderer, ball.x + y, ball.y - x);
+            _ = sdl.SDL_RenderPoint(renderer, ball.x + y, ball.y + x);
+            _ = sdl.SDL_RenderPoint(renderer, ball.x - y, ball.y - x);
+            _ = sdl.SDL_RenderPoint(renderer, ball.x - y, ball.y + x);
 
             if (err <= 0) {
                 y += 1;
@@ -313,7 +313,7 @@ fn move_paddle(game_state: *LevelState, dt: f64) void {
         game_state.paddle.vel_x += 30 * dt;
     }
 
-    game_state.paddle.x += @as(i32, @intFromFloat(game_state.paddle.vel_x));
+    game_state.paddle.x += @floatCast(game_state.paddle.vel_x);
 
     if (game_state.paddle.vel_x > game_state.paddle.max_vel) {
         game_state.paddle.vel_x = game_state.paddle.max_vel;
@@ -348,8 +348,8 @@ fn run_start(game_state: *LevelState, dt: f64) void {
 fn run_game(game_state: *LevelState, dt: f64) void {
     move_paddle(game_state, dt);
 
-    game_state.ball.x += @as(i32, @intFromFloat(game_state.ball.vel_x));
-    game_state.ball.y += @as(i32, @intFromFloat(game_state.ball.vel_y));
+    game_state.ball.x += @floatCast(game_state.ball.vel_x);
+    game_state.ball.y += @floatCast(game_state.ball.vel_y);
 
     const lost = test_border_collision(&game_state.ball);
     if (lost) {
@@ -364,7 +364,7 @@ fn run_game(game_state: *LevelState, dt: f64) void {
 }
 
 pub fn main() !void {
-    if (sdl.SDL_Init(sdl.SDL_INIT_VIDEO) < 0) {
+    if (!sdl.SDL_Init(sdl.SDL_INIT_VIDEO)) {
         std.debug.print("Failed to initialise SDL: {s}\n", .{sdl.SDL_GetError()});
         return error.Unknown;
     }
@@ -372,14 +372,14 @@ pub fn main() !void {
 
     const window_flags = 0;
 
-    const window = sdl.SDL_CreateWindow("Zigenoid", sdl.SDL_WINDOWPOS_UNDEFINED, sdl.SDL_WINDOWPOS_UNDEFINED, screen_width, screen_height, window_flags);
+    const window = sdl.SDL_CreateWindow("Zigenoid", screen_width, screen_height, window_flags);
     if (window == null) {
         std.debug.print("Failed to initialise SDL: {s}\n", .{sdl.SDL_GetError()});
         return error.Unknown;
     }
     defer sdl.SDL_DestroyWindow(window);
 
-    const renderer = sdl.SDL_CreateRenderer(window, -1, 0);
+    const renderer = sdl.SDL_CreateRenderer(window, 0);
     if (renderer == null) {
         std.debug.print("Failed to initialise SDL: {s}\n", .{sdl.SDL_GetError()});
         return error.Unknown;
@@ -403,7 +403,7 @@ pub fn main() !void {
 
         last_frame = curr_frame;
         var event: sdl.SDL_Event = undefined;
-        while (sdl.SDL_PollEvent(&event) > 0) {
+        while (sdl.SDL_PollEvent(&event)) {
             handle_event(event, &game_state);
         }
 
